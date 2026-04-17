@@ -1,22 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, X, MessageSquare, Sparkles, Loader2, Globe, Flame } from 'lucide-react';
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { Send, X, Sparkles, Loader2, Globe, Flame } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { WHATSAPP_NUMBER_DISPLAY } from '../constants/contact';
 
-// Lazy initialization helper for the Gemini API
-let aiInstance: any = null;
-const getAIClient = () => {
-  if (!aiInstance) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY_MISSING");
-    }
-    aiInstance = new GoogleGenAI({ apiKey });
-  }
-  return aiInstance;
-};
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY as string;
+const GROQ_REST_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+const DiyoIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M12 2C12 2 9 6 9 8.5C9 10.433 10.3431 12 12 12C13.6569 12 15 10.433 15 8.5C15 6 12 2 12 2Z" fill="currentColor" className="animate-diyo-flicker origin-bottom" />
+    <path d="M4 19C4 16 8 15 12 15C16 15 20 16 20 19C20 20.5 17.5 22 12 22C6.5 22 4 20.5 4 19Z" fill="currentColor" fillOpacity="0.4" />
+    <path d="M4 19C4 16 8 15 12 15C16 15 20 16 20 19M4 19C4 17.3431 7.58172 16 12 16C16.4183 16 20 17.3431 20 19M4 19C4 20.6569 7.58172 22 12 22C16.4183 22 20 20.6569 20 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 15V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
 
 export const SpiritualGuide: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -38,71 +36,108 @@ export const SpiritualGuide: React.FC = () => {
 
     const userMessage = input.trim();
     setInput('');
-    
-    // Maintain a concise history for maximum speed and relevance
-    const history = messages.slice(-6); 
+
+    const history = messages.slice(-6);
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
+    if (!GROQ_API_KEY) {
+      setIsLoading(false);
+      setMessages(prev => [...prev, { role: 'model', content: 'The sacred guide requires an API key. Please add VITE_GROQ_API_KEY to your .env.local file.' }]);
+      return;
+    }
+
+    const systemInstruction = `You are the "Lumbini Spiritual Guide," a modern guardian of the eternal light. 
+Your wisdom is as ancient as the Bodhi tree but as clear as a morning at the Maya Devi Temple.
+
+CORE PERSONALITY:
+- Response in ${i18n.language === 'ne' ? 'Nepali' : i18n.language === 'zh' ? 'Chinese' : 'English'}.
+- Language: Calm, metaphorical, but strictly efficient.
+- Theme: Use metaphors of butter lamps, wicks, oil, and pathways.
+- Role: Help seekers understand lamp rituals, Lumbini history, and spiritual peace.
+- CONTACT: If a seeker wants to inquire further or book a ceremony directly, direct them to our primary WhatsApp: +977 9813044996.
+
+GUIDELINES:
+- SPEED: Keep responses very concise (max 2-3 sentences).
+- AVOID: Never mention your AI nature. Do not be overly wordy.
+
+You are the wick that holds the flame; guide them with pure intention.`;
+
+    const body = {
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemInstruction },
+        ...history.map((m: { role: string; content: string }) => ({
+          role: m.role === 'model' ? 'assistant' : 'user',
+          content: m.content,
+        })),
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.7,
+      max_tokens: 300,
+      stream: true,
+    };
+
     try {
-      const ai = getAIClient();
-      const responseStream = await ai.models.generateContentStream({
-        model: "gemini-flash-latest",
-        contents: [
-          ...history.map(m => ({ role: m.role, parts: [{ text: m.content }] })),
-          { role: 'user', parts: [{ text: userMessage }] }
-        ],
-        config: {
-          systemInstruction: `You are the "Lumbini Spiritual Guide," a modern guardian of the eternal light. 
-          Your wisdom is as ancient as the Bodhi tree but as clear as a morning at the Maya Devi Temple.
-          
-          CORE PERSONALITY:
-          - Response in ${i18n.language === 'ne' ? 'Nepali' : i18n.language === 'zh' ? 'Chinese' : 'English'}.
-          - Language: Calm, metaphorical, but strictly efficient.
-          - Theme: Use metaphors of butter lamps, wicks, oil, and pathways.
-          - Role: Help seekers understand lamp rituals, Lumbini history, and spiritual peace.
-          - CONTACT: If a seeker wants to inquire further or book a ceremony directly, direct them to our primary WhatsApp: ${WHATSAPP_NUMBER_DISPLAY}.
-          
-          GUIDELINES:
-          - SPEED: Keep responses very concise (max 2-3 sentences).
-          - AVOID: Never mention your AI nature. Do not be overly wordy.
-          
-          You are the wick that holds the flame; guide them with pure intention.`,
-          
-          // Simplified config to resolve 500/Status 0 connectivity issues
-          temperature: 0.7,
-          topP: 0.8,
-          topK: 40
+      const res = await fetch(GROQ_REST_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
         },
+        body: JSON.stringify(body),
       });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson?.error?.message || `HTTP ${res.status}`);
+      }
 
       setIsLoading(false);
       setIsStreaming(true);
       setMessages(prev => [...prev, { role: 'model', content: '' }]);
 
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
       let fullText = '';
-      for await (const chunk of responseStream) {
-        const chunkText = chunk.text;
-        if (chunkText) {
-          fullText += chunkText;
-          setMessages(prev => {
-            const newMessages = [...prev];
-            newMessages[newMessages.length - 1] = { role: 'model', content: fullText };
-            return newMessages;
-          });
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        // SSE lines: each starts with "data: "
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr || jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const text = parsed?.choices?.[0]?.delta?.content ?? '';
+            if (text) {
+              fullText += text;
+              setMessages(prev => {
+                const msgs = [...prev];
+                msgs[msgs.length - 1] = { role: 'model', content: fullText };
+                return msgs;
+              });
+            }
+          } catch { /* skip malformed chunk */ }
         }
       }
-    } catch (error: any) {
-      console.error("Gemini Error:", error);
-      let errorMessage = "I am having trouble connecting to the sacred archives. Please check your connection or ensuring your API Key is set in Settings.";
-      
-      if (error.message === "GEMINI_API_KEY_MISSING") {
-        errorMessage = "The sacred guide requires an API Key. Please provide one in the application Settings to begin our journey.";
-      } else if (error.message?.includes("0")) {
-        errorMessage = "The connection was interrupted. Please ensure you are not using a VPN or Firewall that blocks the Google AI services.";
+
+      if (!fullText) {
+        setMessages(prev => {
+          const msgs = [...prev];
+          msgs[msgs.length - 1] = { role: 'model', content: 'The flame flickers... no response received. Please try again.' };
+          return msgs;
+        });
       }
-      
-      setMessages(prev => [...prev, { role: 'model', content: errorMessage }]);
+    } catch (error: any) {
+      console.error('Gemini REST error:', error);
+      setMessages(prev => [...prev, {
+        role: 'model',
+        content: `The sacred light could not reach the guide: ${error.message ?? 'Unknown error'}. Please try again.`,
+      }]);
     } finally {
       setIsLoading(false);
       setIsStreaming(false);
@@ -116,8 +151,8 @@ export const SpiritualGuide: React.FC = () => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-8 left-8 z-[60] w-14 h-14 bg-saffron text-midnight rounded-full shadow-[0_0_30px_rgba(255,215,0,0.3)] flex items-center justify-center transition-all"
-        aria-label="Open Spiritual Guide Chat"
+        className="fixed bottom-8 left-8 z-[60] w-14 h-14 bg-saffron text-midnight rounded-full shadow-[0_0_30px_rgba(255,215,0,0.3)] flex items-center justify-center transition-all hover:shadow-[0_0_50px_rgba(255,215,0,0.6)] group"
+        aria-label="Ask the Spiritual Guide"
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
@@ -125,8 +160,9 @@ export const SpiritualGuide: React.FC = () => {
               <X className="w-6 h-6" />
             </motion.div>
           ) : (
-            <motion.div key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
-              <Sparkles className="w-6 h-6" />
+            <motion.div key="chat" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} className="relative">
+              <div className="absolute inset-0 bg-saffron/20 blur-xl group-hover:bg-saffron/40 transition-colors rounded-full" />
+              <DiyoIcon className="w-8 h-8 relative z-10" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -145,12 +181,12 @@ export const SpiritualGuide: React.FC = () => {
             <div className="p-6 border-b border-theme-border bg-theme-bg/50 backdrop-blur-md flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-saffron/10 rounded-full flex items-center justify-center">
-                  <Flame className="w-5 h-5 text-saffron" />
+                  <DiyoIcon className="w-6 h-6 text-saffron" />
                 </div>
                 <div>
                   <h3 className="font-serif text-lg font-bold text-theme-heading">Spiritual Guide</h3>
                   <div className="flex items-center gap-1.5 text-[10px] text-saffron/70 uppercase tracking-widest font-bold">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_currentColor]"></span>
                     Online
                   </div>
                 </div>
@@ -182,12 +218,13 @@ export const SpiritualGuide: React.FC = () => {
             >
                {messages.length === 0 ? (
                 <div className="text-center py-12 space-y-4">
-                  <div className="w-16 h-16 bg-theme-surface/50 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Globe className="w-8 h-8 text-stone-700" />
+                  <div className="w-16 h-16 bg-theme-surface/50 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                    <div className="absolute inset-0 bg-saffron/5 animate-pulse rounded-full" />
+                    <DiyoIcon className="w-8 h-8 text-saffron/60" />
                   </div>
-                  <h4 className="text-theme-text font-serif text-xl italic">Pranam, seeker.</h4>
+                  <h4 className="text-theme-text font-serif text-xl italic">Om Mani Padme Hum, seeker.</h4>
                   <p className="text-stone-500 text-sm font-light leading-relaxed max-w-[240px] mx-auto">
-                    I am here to guide your soul through the sacred rituals of Lumbini. How may I assist your journey?
+                    I am the presence within this House. How may I guide your soul through the light today?
                   </p>
                 </div>
               ) : (
@@ -196,7 +233,7 @@ export const SpiritualGuide: React.FC = () => {
                     key={i}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} chat-bubble-fade`}
                   >
                     <div className={`max-w-[85%] p-4 rounded-2xl text-sm font-light leading-relaxed ${
                       m.role === 'user' 
@@ -211,13 +248,12 @@ export const SpiritualGuide: React.FC = () => {
               
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-theme-surface/50 border border-theme-border p-4 rounded-2xl rounded-tl-none flex items-center gap-3">
-                    <div className="flex gap-1">
-                      <span className="w-1.5 h-1.5 bg-saffron rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                      <span className="w-1.5 h-1.5 bg-saffron rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                      <span className="w-1.5 h-1.5 bg-saffron rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  <div className="bg-theme-surface/50 border border-theme-border p-4 rounded-2xl rounded-tl-none flex items-center gap-4">
+                    <div className="relative w-3 h-3">
+                      <div className="absolute inset-0 bg-saffron rounded-full animate-pulsing-light" />
+                      <div className="absolute inset-0 bg-saffron/50 rounded-full animate-pulsing-light" style={{ animationDelay: '0.5s' }} />
                     </div>
-                    <span className="text-xs text-stone-500 font-light italic">Refining the light...</span>
+                    <span className="text-xs text-stone-500 font-light italic">The wax melts, the wisdom forms...</span>
                   </div>
                 </div>
               )}
@@ -225,11 +261,11 @@ export const SpiritualGuide: React.FC = () => {
 
             {/* Quick Suggestions */}
             <div className="px-6 py-2 bg-theme-bg/30 flex gap-2 overflow-x-auto no-scrollbar">
-              {['Why light a lamp?', 'Lumbini history', 'Packages'].map(tag => (
+              {['Ashoka Pillar History', '108 Lamps Meaning', 'Full Moon Ceremony', 'Best number in Buddhism'].map(tag => (
                 <button 
                   key={tag}
                   onClick={() => setInput(tag)}
-                  className="whitespace-nowrap px-3 py-1 bg-theme-surface/30 border border-theme-border rounded-full text-[9px] uppercase tracking-widest text-theme-text/60 hover:text-saffron transition-all"
+                  className="whitespace-nowrap px-3 py-1 bg-theme-surface/30 border border-theme-border rounded-full text-[9px] uppercase tracking-widest text-theme-text/60 hover:text-saffron hover:border-saffron/30 transition-all"
                 >
                   {tag}
                 </button>

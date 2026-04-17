@@ -88,4 +88,40 @@
   .glow-text {
     text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
   }
+
+  @keyframes diyo-flicker {
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1) translateY(-1px); }
+  }
+
+  @keyframes golden-glow-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.6); }
+  }
+
+  @keyframes pulsing-light {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.5); filter: blur(4px); }
+  }
+
+  .animate-diyo-flicker {
+    animation: diyo-flicker 2s ease-in-out infinite;
+  }
+
+  .animate-glow-pulse {
+    animation: golden-glow-pulse 3s ease-in-out infinite;
+  }
+
+  .animate-pulsing-light {
+    animation: pulsing-light 2s ease-in-out infinite;
+  }
+
+  .chat-bubble-fade {
+    animation: fadeInSlide 1.2s ease-out forwards;
+  }
+
+  @keyframes fadeInSlide {
+    0% { opacity: 0; transform: translateY(10px); filter: blur(5px); }
+    100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+  }
 }

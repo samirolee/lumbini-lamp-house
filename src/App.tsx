@@ -200,30 +200,30 @@ export default function App() {
 
   const fallbackGallery = [
     {
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Maya_devi_temple_lumbini.jpg/1280px-Maya_devi_temple_lumbini.jpg',
+      url: '/assets/images/gallery-maya-devi.jpg',
       title: 'Maya Devi Temple, Lumbini',
       alt: 'Maya Devi Temple in Lumbini, Nepal',
       caption: 'The sacred birthplace temple complex at the heart of Lumbini.',
       location: 'Lumbini, Nepal',
     },
     {
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Ashoka_pillar_in_Lumbini.jpg/1024px-Ashoka_pillar_in_Lumbini.jpg',
+      url: '/assets/images/gallery-ashoka-pillar.jpg',
       title: 'Ashoka Pillar',
       alt: 'Ashoka Pillar in the Lumbini sacred garden',
       caption: 'Historic pillar marking the ancient pilgrimage site.',
       location: 'Sacred Garden, Lumbini',
     },
     {
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/World_Peace_Pagoda_Lumbini.jpg/1280px-World_Peace_Pagoda_Lumbini.jpg',
+      url: '/assets/images/gallery-peace-pagoda.jpg',
       title: 'World Peace Pagoda',
       alt: 'World Peace Pagoda in Lumbini',
       caption: 'A landmark of global harmony and Buddhist devotion.',
       location: 'Lumbini Monastic Zone',
     },
     {
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Monastic_Zone_Lumbini.jpg/1280px-Monastic_Zone_Lumbini.jpg',
+      url: '/assets/images/gallery-monastic-zone.jpg',
       title: 'Monastic Zone',
-      alt: 'Monastic zone landscape in Lumbini',
+      alt: 'Lumbini Peace Pagoda and monastic zone, Nepal',
       caption: 'Monasteries and contemplative spaces across the peace park.',
       location: 'Lumbini Monastic Zone',
     },
@@ -579,15 +579,35 @@ export default function App() {
           <div className="absolute inset-0 z-0">
             <motion.img 
               style={{ y: heroY, scale: heroScale }}
-              src="https://images.unsplash.com/photo-1621508654686-809f23efdaba?q=80&w=2070&auto=format&fit=crop" 
-              alt="The Maya Devi Temple in Lumbini under a dramatic sky"
+              src="/assets/images/hero-lumbini.jpg" 
+              alt="The sacred grounds of Lumbini, Nepal, birthplace of Lord Buddha"
               className="w-full h-full object-cover opacity-40 translate-z-0"
-              referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-theme-bg via-transparent to-theme-bg"></div>
             <div className="absolute inset-0 bg-radial-gradient(circle at 50% 50%, transparent 0%, rgba(10,10,10,0.8) 100%)"></div>
           </div>
           
+          {/* Sacred Brass Lamp — background centred behind the text */}
+          <motion.div
+            style={{ y: useTransform(scrollY, [0, 500], [0, 80]) }}
+            className="absolute inset-0 z-[1] flex items-center justify-center pointer-events-none"
+          >
+            {/* Outer glow halo */}
+            <div className="absolute w-[520px] h-[520px] rounded-full bg-saffron/10 blur-[100px]" />
+            {/* Lamp image with radial mask so edges fade naturally */}
+            <img
+              src="/assets/brass-lamp.png"
+              alt="Sacred brass oil lamp"
+              className="relative w-[480px] max-w-[80vw] opacity-25 select-none"
+              style={{
+                maskImage: 'radial-gradient(ellipse 70% 80% at 50% 50%, black 40%, transparent 100%)',
+                WebkitMaskImage: 'radial-gradient(ellipse 70% 80% at 50% 50%, black 40%, transparent 100%)',
+                filter: 'sepia(30%) brightness(1.1)',
+              }}
+              draggable={false}
+            />
+          </motion.div>
+
           <div className="relative z-10 text-center px-6">
             <motion.div
               initial={{ opacity: 0, y: 40 }}
@@ -669,10 +689,9 @@ export default function App() {
               >
                 <div className="aspect-[3/4] rounded-2xl overflow-hidden border border-theme-border">
                   <img 
-                    src="https://images.unsplash.com/photo-1518005020250-675f04029711?q=80&w=2070&auto=format&fit=crop" 
-                    alt="Prayer flags fluttering in the breeze at the Buddha's birthplace"
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-                    referrerPolicy="no-referrer"
+                    src="/assets/images/about-lumbini.jpg"
+                    alt="Sacred Bodhi tree and pilgrims at the Maya Devi Temple, Lumbini"
+                    className="w-full h-full object-cover transition-all duration-1000"
                   />
                 </div>
                 <div className="absolute -inset-4 border border-saffron/20 rounded-2xl -z-10 group-hover:inset-0 transition-all duration-700"></div>
@@ -721,10 +740,9 @@ export default function App() {
                 className="relative h-[600px] rounded-3xl overflow-hidden shadow-2xl"
               >
                 <img 
-                  src="https://images.unsplash.com/photo-1596402184320-417d7178b2cd?q=80&w=1200" 
-                  alt="A peaceful monk walking through the sacred gardens of Lumbini" 
-                  className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-                  referrerPolicy="no-referrer"
+                  src="/assets/images/chronicles-monks.jpg" 
+                  alt="Buddhist monks walking through sacred temple grounds"
+                  className="w-full h-full object-cover transition-all duration-1000"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-theme-bg via-transparent to-transparent"></div>
               </motion.div>
@@ -1035,7 +1053,7 @@ export default function App() {
                     {item.type === 'video' ? (
                       <video 
                         src={item.url} 
-                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                        className="w-full h-full object-cover transition-all duration-700"
                         muted 
                         loop 
                         playsInline
@@ -1046,7 +1064,7 @@ export default function App() {
                       <img 
                         src={item.url} 
                         alt={item.alt} 
-                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" 
+                        className="w-full h-full object-cover transition-all duration-700"
                         referrerPolicy="no-referrer"
                         loading="lazy"
                       />
