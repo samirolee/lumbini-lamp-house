@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile and role information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email address" },
+        "role": { "type": "string", "enum": ["admin", "seeker"], "description": "Access level" },
+        "displayName": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "media": {
+      "title": "Media",
+      "description": "Uploaded photos and videos for the sanctuary gallery",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "url": { "type": "string", "description": "Public URL from Cloud Storage" },
+        "type": { "type": "string", "enum": ["image", "video"] },
+        "title": { "type": "string" },
+        "caption": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "uploadedBy": { "type": "string" }
+      },
+      "required": ["url", "type", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profile data"
+    },
+    "/media/{mediaId}": {
+      "schema": "media",
+      "description": "Sanctuary gallery assets"
+    }
+  }
+}
